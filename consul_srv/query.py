@@ -41,7 +41,7 @@ class Resolver(Resolver):
         """
         domain_name = '{}.service.consul'.format(resource)
         # Get the host from the ADDITIONAL section
-        answer = self.query(domain_name, 'SRV')
+        answer = self.query(domain_name, 'SRV', tcp=True)
 
         host = self._get_host(answer)
         port = self._get_port(answer)
