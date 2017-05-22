@@ -34,6 +34,10 @@ class GenericSession(object):
 
 
 class Service(object):
+    """
+    Provides service discovery via Consul, returning some kind of session
+    handler for the service.
+    """
 
     MOCK_SERVICES = {"__all__": False}
     SERVICE_MAP = {"default": GenericSession}
