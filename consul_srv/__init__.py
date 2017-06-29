@@ -21,16 +21,16 @@ class GenericSession(object):
         return self.session.get(self.base_url + path, *args, **kwargs)
 
     def post(self, path, *args, **kwargs):
-        return self.session.get(self.base_url + path, *args, **kwargs)
+        return self.session.post(self.base_url + path, *args, **kwargs)
 
     def put(self, path, *args, **kwargs):
-        return self.session.get(self.base_url + path, *args, **kwargs)
+        return self.session.put(self.base_url + path, *args, **kwargs)
 
     def patch(self, path, *args, **kwargs):
-        return self.session.get(self.base_url + path, *args, **kwargs)
+        return self.session.patch(self.base_url + path, *args, **kwargs)
 
     def delete(self, path, *args, **kwargs):
-        return self.session.get(self.base_url + path, *args, **kwargs)
+        return self.session.delete(self.base_url + path, *args, **kwargs)
 
 
 class Service(object):
