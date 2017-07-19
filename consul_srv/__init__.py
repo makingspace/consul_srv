@@ -82,12 +82,14 @@ def register(service_name, handler, mock_handler=None):
     Register a handler with a particular service name.
     """
     service.SERVICE_MAP[service_name] = handler
-    if mock_handler:
+    if mock_handler is not None:
         service.MOCKED_SERVICE_MAP[service_name] = mock_handler
 
 
-def mock(service_name, should_mock=True):
+def mock(service_name, should_mock=True, mock_handler=None):
     """
     Enable/disable mocking of a particular service name.
     """
     service.MOCK_SERVICES[service_name] = should_mock
+    if mock_handler is not None:
+        service.MOCKED_SERVICE_MAP[service_name] = mock_handler
