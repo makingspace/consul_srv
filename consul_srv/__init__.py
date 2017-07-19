@@ -65,11 +65,12 @@ class Service(object):
         try:
             service = service_map[service_name](server, port, *args)
         except KeyError:
-            service = service_map["default"](server, port)
-        except KeyError:
-            raise KeyError(
-                "Service {} is not currently available. [MOCKED: {}]".format(
-                    service_name, should_mock))
+            try:
+                service = service_map["default"](server, port)
+            except KeyError:
+                raise KeyError(
+                    "Service {} is not currently available. [MOCKED: {}]".format(
+                        service_name, should_mock))
 
         return service
 
