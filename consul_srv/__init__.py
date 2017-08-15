@@ -1,6 +1,6 @@
 import requests
 
-from query import Resolver
+from . import query
 
 __all__ = ["service", "register", "mock", "AGENT_URI"]
 
@@ -44,7 +44,7 @@ class Service(object):
     MOCKED_SERVICE_MAP = {}
 
     def resolve(self, service_name):
-        resolver = Resolver(AGENT_URI)
+        resolver = query.Resolver(AGENT_URI)
         return resolver.srv(service_name)
 
     def __call__(self, service_name, *args):
