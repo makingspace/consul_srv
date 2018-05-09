@@ -17,20 +17,23 @@ class GenericSession(object):
         self.base_url = "{}://{}:{}/".format(protocol, host, port)
         self.session = requests.Session()
 
+    def _path(self, path):
+        return self.base_url + path.lstrip("/")
+
     def get(self, path, *args, **kwargs):
-        return self.session.get(self.base_url + path, *args, **kwargs)
+        return self.session.get(self._path(path), *args, **kwargs)
 
     def post(self, path, *args, **kwargs):
-        return self.session.post(self.base_url + path, *args, **kwargs)
+        return self.session.post(self._path(path), *args, **kwargs)
 
     def put(self, path, *args, **kwargs):
-        return self.session.put(self.base_url + path, *args, **kwargs)
+        return self.session.put(self._path(path), *args, **kwargs)
 
     def patch(self, path, *args, **kwargs):
-        return self.session.patch(self.base_url + path, *args, **kwargs)
+        return self.session.patch(self._path(path), *args, **kwargs)
 
     def delete(self, path, *args, **kwargs):
-        return self.session.delete(self.base_url + path, *args, **kwargs)
+        return self.session.delete(self._path(path), *args, **kwargs)
 
 
 class Service(object):
