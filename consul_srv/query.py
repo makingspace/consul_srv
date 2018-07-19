@@ -2,11 +2,12 @@
 Simple wrapper around dnspython to query a Consul agent over its DNS port and
 extract ip address/port information.
 """
-from dns.resolver import Resolver
-from dns import rdatatype
 from collections import namedtuple
 
-SRV = namedtuple('SRV', ['host', 'port'])
+from dns import rdatatype
+from dns.resolver import Resolver
+
+SRV = namedtuple("SRV", ["host", "port"])
 
 
 class Resolver(Resolver):
@@ -14,6 +15,7 @@ class Resolver(Resolver):
     Wrapper around the dnspython Resolver class that implements the `srv`
     method. Takes the address and optional port of a DNS server.
     """
+
     def __init__(self, server_address, port=8600):
         super(Resolver, self).__init__()
         self.nameservers = [server_address]
@@ -39,9 +41,9 @@ class Resolver(Resolver):
         Query this resolver's nameserver for the name consul service. Returns a
         named host/port tuple from the first element of the response.
         """
-        domain_name = '{}.service.consul'.format(resource)
+        domain_name = "{}.service.consul".format(resource)
         # Get the host from the ADDITIONAL section
-        answer = self.query(domain_name, 'SRV', tcp=True)
+        answer = self.query(domain_name, "SRV", tcp=True)
 
         host = self._get_host(answer)
         port = self._get_port(answer)

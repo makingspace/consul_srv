@@ -54,8 +54,9 @@ class Service(object):
         """
         Return a service interface for the requested service.
         """
-        should_mock = (self.MOCK_SERVICES.get(service_name) or
-                       self.MOCK_SERVICES["__all__"])
+        should_mock = (
+            self.MOCK_SERVICES.get(service_name) or self.MOCK_SERVICES["__all__"]
+        )
         if should_mock:
             service_map = self.MOCKED_SERVICE_MAP
             server = None
@@ -73,7 +74,9 @@ class Service(object):
             except KeyError:
                 raise KeyError(
                     "Service {} is not currently available. [MOCKED: {}]".format(
-                        service_name, should_mock))
+                        service_name, should_mock
+                    )
+                )
 
         return service
 
