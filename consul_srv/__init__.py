@@ -1,5 +1,7 @@
 import requests
 
+from collections import namedtuple
+
 from . import query
 
 __all__ = ["service", "register", "mock", "AGENT_URI"]
@@ -8,6 +10,9 @@ AGENT_URI = "127.0.0.1"
 
 TeeConfig = namedtuple('TeeConfig', 'serv_original serv_experimental latency_delta')
 DEFAULT_TEE_SERVICE = 'fore'
+HEADER_SERVICE = 'X-SERVICE-ORIGINAL'
+HEADER_SERVICE_EXP = 'X-SERVICE-EXP'
+HEADER_LAT_DELTA = 'X-SERVICE-LATDELTA'
 
 class GenericSession(object):
     """
@@ -19,9 +24,9 @@ class GenericSession(object):
         self.base_url = "{}://{}:{}/".format(protocol, host_port.host, host_port.port)
         self.session = requests.Session()
         if tee_config:
-            self.session.headers.update({'x-service-original': tee_config.serv_original})
-            self.session.headers.update({'x-service-experimental': tee_config.serv_experimental})
-            self.session.headers.update({'x-service-latency_delta': tee_config.latency_delta})
+            self.session.headers.update({HEADER_SERVICE: tee_config.serv_original,
+                                        HEADER_SERVICE_EXP: tee_config.serv_experimental,
+                                        HEADER_LAT_DELTA: tee_config.latency_delta})
 
     def _path(self, path):
         return self.base_url + path.lstrip("/")
@@ -66,22 +71,21 @@ class Service(object):
         tee_config = None
         if should_mock:
             service_map = self.MOCKED_SERVICE_MAP
-            server = None
-            port = None
+            host_port = None
         else:
             service_map = self.SERVICE_MAP
             if service_experimental:
                 tee_config = TeeConfig(serv_original=service_name,
                                         serv_experimental=service_experimental,
                                         latency_delta=latency_delta)
-                host_port = self.resolve(DEFAULT_TEE_SERVICE)
-            else:
-                host_port = self.resolve(service_name)
+                service_name = DEFAULT_TEE_SERVICE
+                
+            host_port = self.resolve(service_name)
         try:
             service = service_map[service_name](host_port, tee_config=tee_config, *args)
         except KeyError:
             try:
-                service = service_map["default"](host_port)
+                service = service_map["default"](host_port, tee_config=tee_config, *args))
             except KeyError:
                 raise KeyError(
                     "Service {} is not currently available. [MOCKED: {}]".format(
