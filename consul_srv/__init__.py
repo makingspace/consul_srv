@@ -12,7 +12,7 @@ TeeConfig = namedtuple('TeeConfig', 'serv_original serv_experimental latency_del
 DEFAULT_TEE_SERVICE = 'fore'
 HEADER_SERVICE = 'X-SERVICE-ORIGINAL'
 HEADER_SERVICE_EXP = 'X-SERVICE-EXP'
-HEADER_LAT_DELTA = 'X-SERVICE-LATDELTA'
+HEADER_LAT_DELTA = 'X-SERVICE-LATDELTA-SEC'
 
 class GenericSession(object):
     """
@@ -26,7 +26,7 @@ class GenericSession(object):
         if tee_config:
             self.session.headers.update({HEADER_SERVICE: tee_config.serv_original,
                                         HEADER_SERVICE_EXP: tee_config.serv_experimental,
-                                        HEADER_LAT_DELTA: tee_config.latency_delta})
+                                        HEADER_LAT_DELTA: str(tee_config.latency_delta)})
 
     def _path(self, path):
         return self.base_url + path.lstrip("/")
@@ -45,7 +45,11 @@ class GenericSession(object):
 
     def delete(self, path, *args, **kwargs):
         return self.session.delete(self._path(path), *args, **kwargs)
-
+    
+    def run(self, request_method, path, **kwargs):
+        request = requests.Request(request_method, self._path(path), **kwargs)
+        prepped = self.session.prepare_request(request)
+        return self.session.send(prepped)
 
 class Service(object):
     """
@@ -61,7 +65,7 @@ class Service(object):
         resolver = query.Resolver(AGENT_URI)
         return resolver.srv(service_name)
 
-    def __call__(self, service_name, service_experimental=None, latency_delta=None, *args):
+    def __call__(self, service_name, service_experimental=None, latency_delta=None, env=None, *args):
         """
         Return a service interface for the requested service.
         """
@@ -73,19 +77,23 @@ class Service(object):
             service_map = self.MOCKED_SERVICE_MAP
             host_port = None
         else:
+            service_name = "{}-{}".format(service_name, env) if env else service_name
+
             service_map = self.SERVICE_MAP
             if service_experimental:
+                service_experimental = "{}-{}".format(service_experimental, env) if env else service_experimental
+
                 tee_config = TeeConfig(serv_original=service_name,
                                         serv_experimental=service_experimental,
                                         latency_delta=latency_delta)
-                service_name = DEFAULT_TEE_SERVICE
+                service_name = "{}-{}".format(DEFAULT_TEE_SERVICE, env) if env else DEFAULT_TEE_SERVICE
                 
             host_port = self.resolve(service_name)
         try:
             service = service_map[service_name](host_port, tee_config=tee_config, *args)
         except KeyError:
             try:
-                service = service_map["default"](host_port, tee_config=tee_config, *args))
+                service = service_map["default"](host_port, tee_config=tee_config, *args)
             except KeyError:
                 raise KeyError(
                     "Service {} is not currently available. [MOCKED: {}]".format(
