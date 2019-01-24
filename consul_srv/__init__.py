@@ -20,9 +20,10 @@ class GenericSession(object):
     host/port.
     """
 
-    def __init__(self, host_port, tee_config=None, protocol="http"):
+    def __init__(self, host_port, protocol="http", *args, **kwargs):
         self.base_url = "{}://{}:{}/".format(protocol, host_port.host, host_port.port)
         self.session = requests.Session()
+        tee_config = kwargs.pop('tee_config', None)
         if tee_config:
             self.session.headers.update({HEADER_SERVICE: tee_config.serv_original,
                                         HEADER_SERVICE_EXP: tee_config.serv_experimental,
@@ -65,10 +66,16 @@ class Service(object):
         resolver = query.Resolver(AGENT_URI)
         return resolver.srv(service_name)
 
-    def __call__(self, service_name, service_experimental=None, latency_delta=None, env=None, *args):
+    def __call__(self, service_name, *args, **kwargs):
         """
         Return a service interface for the requested service.
         """
+
+        service_experimental = kwargs.pop('service_experimental', None)
+        latency_delta = kwargs.pop('latency_delta', None)
+        env = kwargs.pop('env', None)
+        fore_service = kwargs.pop('fore_service', None)
+
         should_mock = (
             self.MOCK_SERVICES.get(service_name) or self.MOCK_SERVICES["__all__"]
         )
@@ -87,6 +94,7 @@ class Service(object):
                                         serv_experimental=service_experimental,
                                         latency_delta=latency_delta)
                 service_name = "{}-{}".format(DEFAULT_TEE_SERVICE, env) if env else DEFAULT_TEE_SERVICE
+                service_name = fore_service if fore_service else service_name
                 
             host_port = self.resolve(service_name)
         try:
