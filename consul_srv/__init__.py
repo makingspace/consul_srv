@@ -87,8 +87,6 @@ class Service(object):
         else:
             service_name = "{}-{}".format(service_name, env) if env else service_name
             service_map = self.SERVICE_MAP
-            server = host_port.host
-            port = host_port.port
 
             if service_experimental:
                 service_experimental = "{}-{}".format(service_experimental, env) if env else service_experimental
@@ -100,6 +98,8 @@ class Service(object):
                 service_name = fore_service if fore_service else service_name
                 
             host_port = self.resolve(service_name)
+            server = host_port.host
+            port = host_port.port
         try:
             session_cls = service_map[service_name]
             if session_cls == GenericSession:
