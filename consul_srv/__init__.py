@@ -21,7 +21,10 @@ class GenericSession(object):
     """
 
     def __init__(self, host_port, protocol="http", *args, **kwargs):
-        self.base_url = "{}://{}:{}/".format(protocol, host_port.host, host_port.port)
+        if host_port:
+            self.base_url = "{}://{}:{}/".format(protocol, host_port.host, host_port.port)
+        else:
+            self.base_url = ""
         self.session = requests.Session()
         tee_config = kwargs.pop('tee_config', None)
         if tee_config:
