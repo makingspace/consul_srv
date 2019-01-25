@@ -1,6 +1,6 @@
 Metadata-Version: 1.0
 Name: consul-srv
-Version: 0.4.6
+Version: 0.4.7
 Summary: Consul SRV convenience module
 Home-page: UNKNOWN
 Author: Zach Smith

@@ -20,11 +20,8 @@ class GenericSession(object):
     host/port.
     """
 
-    def __init__(self, host_port, protocol="http", *args, **kwargs):
-        if host_port:
-            self.base_url = "{}://{}:{}/".format(protocol, host_port.host, host_port.port)
-        else:
-            self.base_url = ""
+    def __init__(self, host, port, protocol="http", *args, **kwargs):
+        self.base_url = "{}://{}:{}/".format(protocol, host, port)
         self.session = requests.Session()
         tee_config = kwargs.pop('tee_config', None)
         if tee_config:
@@ -85,11 +82,14 @@ class Service(object):
         tee_config = None
         if should_mock:
             service_map = self.MOCKED_SERVICE_MAP
-            host_port = None
+            server = None
+            port = None
         else:
             service_name = "{}-{}".format(service_name, env) if env else service_name
-
             service_map = self.SERVICE_MAP
+            server = host_port.host
+            port = host_port.port
+
             if service_experimental:
                 service_experimental = "{}-{}".format(service_experimental, env) if env else service_experimental
 
@@ -101,10 +101,14 @@ class Service(object):
                 
             host_port = self.resolve(service_name)
         try:
-            service = service_map[service_name](host_port, tee_config=tee_config, *args)
+            session_cls = service_map[service_name]
+            if session_cls == GenericSession:
+                service = service_map[service_name](server, port, tee_config=tee_config, *args)
+            else:
+                service = service_map[service_name](server, port, *args)
         except KeyError:
             try:
-                service = service_map["default"](host_port, tee_config=tee_config, *args)
+                service = service_map["default"](server, port, tee_config=tee_config, *args)
             except KeyError:
                 raise KeyError(
                     "Service {} is not currently available. [MOCKED: {}]".format(
