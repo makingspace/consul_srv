@@ -1,0 +1,10 @@
+README.md
+setup.cfg
+setup.py
+consul_srv/__init__.py
+consul_srv/query.py
+consul_srv.egg-info/PKG-INFO
+consul_srv.egg-info/SOURCES.txt
+consul_srv.egg-info/dependency_links.txt
+consul_srv.egg-info/requires.txt
+consul_srv.egg-info/top_level.txt

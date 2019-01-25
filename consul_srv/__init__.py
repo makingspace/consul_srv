@@ -8,11 +8,11 @@ __all__ = ["service", "register", "mock", "AGENT_URI"]
 
 AGENT_URI = "127.0.0.1"
 
-TeeConfig = namedtuple('TeeConfig', 'serv_original serv_experimental latency_delta')
+TeeConfig = namedtuple('TeeConfig', 'serv_original serv_experimental max_delta')
 DEFAULT_TEE_SERVICE = 'fore'
 HEADER_SERVICE = 'X-SERVICE-ORIGINAL'
 HEADER_SERVICE_EXP = 'X-SERVICE-EXP'
-HEADER_LAT_DELTA = 'X-SERVICE-LATDELTA-SEC'
+HEADER_MAX_DELTA_SEC = 'X-SERVICE-MAXDELTA-SEC'
 
 class GenericSession(object):
     """
@@ -27,7 +27,7 @@ class GenericSession(object):
         if tee_config:
             self.session.headers.update({HEADER_SERVICE: tee_config.serv_original,
                                         HEADER_SERVICE_EXP: tee_config.serv_experimental,
-                                        HEADER_LAT_DELTA: str(tee_config.latency_delta)})
+                                        HEADER_MAX_DELTA_SEC: str(tee_config.max_delta)})
 
     def _path(self, path):
         return self.base_url + path.lstrip("/")
@@ -72,7 +72,7 @@ class Service(object):
         """
 
         service_experimental = kwargs.pop('service_experimental', None)
-        latency_delta = kwargs.pop('latency_delta', None)
+        max_delta = kwargs.pop('max_delta', None)
         env = kwargs.pop('env', None)
         fore_service = kwargs.pop('fore_service', None)
 
@@ -92,7 +92,7 @@ class Service(object):
 
                 tee_config = TeeConfig(serv_original=service_name,
                                         serv_experimental=service_experimental,
-                                        latency_delta=latency_delta)
+                                        max_delta=max_delta)
                 service_name = "{}-{}".format(DEFAULT_TEE_SERVICE, env) if env else DEFAULT_TEE_SERVICE
                 service_name = fore_service if fore_service else service_name
                 
