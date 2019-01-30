@@ -102,7 +102,7 @@ class Service(object):
             port = host_port.port
         try:
             session_cls = service_map[service_name]
-            if session_cls == GenericSession:
+            if issubclass(session_cls, GenericSession):
                 service = service_map[service_name](server, port, tee_config=tee_config, *args)
             else:
                 service = service_map[service_name](server, port, *args)
