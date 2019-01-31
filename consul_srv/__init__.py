@@ -75,6 +75,7 @@ class Service(object):
         max_delta = kwargs.pop('max_delta', None)
         env = kwargs.pop('env', None)
         fore_service = kwargs.pop('fore_service', None)
+        fore_client = kwargs.pop('fore_client', None)
 
         should_mock = (
             self.MOCK_SERVICES.get(service_name) or self.MOCK_SERVICES["__all__"]
@@ -96,10 +97,14 @@ class Service(object):
                                         max_delta=max_delta)
                 service_name = "{}-{}".format(DEFAULT_TEE_SERVICE, env) if env else DEFAULT_TEE_SERVICE
                 service_name = fore_service if fore_service else service_name
-                
+
             host_port = self.resolve(service_name)
             server = host_port.host
             port = host_port.port
+
+        if fore_service and fore_client:
+            return fore_client(server, port, tee_config=tee_config, *args)
+
         try:
             session_cls = service_map[service_name]
             if issubclass(session_cls, GenericSession):
