@@ -103,7 +103,7 @@ class Service(object):
             port = host_port.port
 
         if fore_service and fore_client:
-            return fore_client(server, port, tee_config=tee_config, *args)
+            return fore_client(server, port, tee_config=tee_config, *args, **kwargs)
 
         try:
             session_cls = service_map[service_name]
