@@ -14,7 +14,7 @@ HEADER_SERVICE = 'X-SERVICE-ORIGINAL'
 HEADER_SERVICE_EXP = 'X-SERVICE-EXP'
 HEADER_MAX_DELTA_SEC = 'X-SERVICE-MAXDELTA-SEC'
 
-class GenericSession(object):
+class ConsulClient(object):
     """
     Basic service session, which prepopulates requests with the appropriate
     host/port.
@@ -63,7 +63,7 @@ class Service(object):
     """
 
     MOCK_SERVICES = {"__all__": False}
-    SERVICE_MAP = {"default": GenericSession}
+    SERVICE_MAP = {"default": ConsulClient}
     MOCKED_SERVICE_MAP = {}
 
     def resolve(self, service_name):
@@ -107,7 +107,7 @@ class Service(object):
             port = host_port.port
         try:
             session_cls = service_map[service_name]
-            if issubclass(session_cls, GenericSession):
+            if issubclass(session_cls, ConsulClient):
                 service = service_map[service_name](server, port, tee_config=tee_config, *args)
             else:
                 service = service_map[service_name](server, port, *args)
