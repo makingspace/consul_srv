@@ -8,7 +8,7 @@ __all__ = ["service", "register", "mock", "AGENT_URI"]
 
 AGENT_URI = "127.0.0.1"
 
-TeeConfig = namedtuple('TeeConfig', 'serv_original serv_experimental max_delta')
+TeeConfig = namedtuple('TeeConfig', 'serv_original serv_experimental max_delta fore_service')
 DEFAULT_TEE_SERVICE = 'fore'
 HEADER_SERVICE = 'X-SERVICE-ORIGINAL'
 HEADER_SERVICE_EXP = 'X-SERVICE-EXP'
@@ -23,14 +23,18 @@ class GenericSession(object):
     def __init__(self, host, port, protocol="http", *args, **kwargs):
         self.base_url = "{}://{}:{}/".format(protocol, host, port)
         self.session = requests.Session()
+        self.fore_url = None
+        
         tee_config = kwargs.pop('tee_config', None)
         if tee_config:
             self.session.headers.update({HEADER_SERVICE: tee_config.serv_original,
                                         HEADER_SERVICE_EXP: tee_config.serv_experimental,
                                         HEADER_MAX_DELTA_SEC: str(tee_config.max_delta)})
+            self.fore_url = "{}://{}:{}/".format(protocol, tee_config.fore_service.host, tee_config.fore_service.port)
 
     def _path(self, path):
-        return self.base_url + path.lstrip("/")
+        base = self.fore_url if self.fore_url else self.base_url
+        return base + path.lstrip("/")
 
     def get(self, path, *args, **kwargs):
         return self.session.get(self._path(path), *args, **kwargs)
@@ -75,6 +79,8 @@ class Service(object):
         max_delta = kwargs.pop('max_delta', None)
         env = kwargs.pop('env', None)
         fore_service = kwargs.pop('fore_service', None)
+        if not fore_service:
+            fore_service = "{}-{}".format(DEFAULT_TEE_SERVICE, env) if env else DEFAULT_TEE_SERVICE
 
         should_mock = (
             self.MOCK_SERVICES.get(service_name) or self.MOCK_SERVICES["__all__"]
@@ -93,9 +99,8 @@ class Service(object):
 
                 tee_config = TeeConfig(serv_original=service_name,
                                         serv_experimental=service_experimental,
-                                        max_delta=max_delta)
-                service_name = "{}-{}".format(DEFAULT_TEE_SERVICE, env) if env else DEFAULT_TEE_SERVICE
-                service_name = fore_service if fore_service else service_name
+                                        max_delta=max_delta,
+                                        fore_service=self.resolve(fore_service))
                 
             host_port = self.resolve(service_name)
             server = host_port.host
