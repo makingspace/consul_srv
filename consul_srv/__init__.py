@@ -8,13 +8,13 @@ __all__ = ["service", "register", "mock", "AGENT_URI"]
 
 AGENT_URI = "127.0.0.1"
 
-TeeConfig = namedtuple('TeeConfig', 'serv_original serv_experimental max_delta')
+TeeConfig = namedtuple('TeeConfig', 'serv_original serv_experimental max_delta fore_service')
 DEFAULT_TEE_SERVICE = 'fore'
 HEADER_SERVICE = 'X-SERVICE-ORIGINAL'
 HEADER_SERVICE_EXP = 'X-SERVICE-EXP'
 HEADER_MAX_DELTA_SEC = 'X-SERVICE-MAXDELTA-SEC'
 
-class GenericSession(object):
+class ConsulClient(object):
     """
     Basic service session, which prepopulates requests with the appropriate
     host/port.
@@ -23,14 +23,18 @@ class GenericSession(object):
     def __init__(self, host, port, protocol="http", *args, **kwargs):
         self.base_url = "{}://{}:{}/".format(protocol, host, port)
         self.session = requests.Session()
+        self.fore_url = None
+        
         tee_config = kwargs.pop('tee_config', None)
         if tee_config:
             self.session.headers.update({HEADER_SERVICE: tee_config.serv_original,
                                         HEADER_SERVICE_EXP: tee_config.serv_experimental,
-                                        HEADER_MAX_DELTA_SEC: str(tee_config.max_delta)})
+                                        HEADER_MAX_DELTA_SEC: str(tee_config.max_delta if tee_config.max_delta else 0)})
+            self.fore_url = "{}://{}:{}/".format(protocol, tee_config.fore_service.host, tee_config.fore_service.port)
 
     def _path(self, path):
-        return self.base_url + path.lstrip("/")
+        base = self.fore_url if self.fore_url else self.base_url
+        return base + path.lstrip("/")
 
     def get(self, path, *args, **kwargs):
         return self.session.get(self._path(path), *args, **kwargs)
@@ -59,7 +63,7 @@ class Service(object):
     """
 
     MOCK_SERVICES = {"__all__": False}
-    SERVICE_MAP = {"default": GenericSession}
+    SERVICE_MAP = {"default": ConsulClient}
     MOCKED_SERVICE_MAP = {}
 
     def resolve(self, service_name):
@@ -70,11 +74,12 @@ class Service(object):
         """
         Return a service interface for the requested service.
         """
-
         service_experimental = kwargs.pop('service_experimental', None)
         max_delta = kwargs.pop('max_delta', None)
         env = kwargs.pop('env', None)
         fore_service = kwargs.pop('fore_service', None)
+        if not fore_service:
+            fore_service = "{}-{}".format(DEFAULT_TEE_SERVICE, env) if env else DEFAULT_TEE_SERVICE
 
         should_mock = (
             self.MOCK_SERVICES.get(service_name) or self.MOCK_SERVICES["__all__"]
@@ -93,16 +98,15 @@ class Service(object):
 
                 tee_config = TeeConfig(serv_original=service_name,
                                         serv_experimental=service_experimental,
-                                        max_delta=max_delta)
-                service_name = "{}-{}".format(DEFAULT_TEE_SERVICE, env) if env else DEFAULT_TEE_SERVICE
-                service_name = fore_service if fore_service else service_name
+                                        max_delta=max_delta,
+                                        fore_service=self.resolve(fore_service))
                 
             host_port = self.resolve(service_name)
             server = host_port.host
             port = host_port.port
         try:
             session_cls = service_map[service_name]
-            if session_cls == GenericSession:
+            if issubclass(session_cls, ConsulClient):
                 service = service_map[service_name](server, port, tee_config=tee_config, *args)
             else:
                 service = service_map[service_name](server, port, *args)
