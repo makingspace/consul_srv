@@ -29,7 +29,7 @@ class ConsulClient(object):
         if tee_config:
             self.session.headers.update({HEADER_SERVICE: tee_config.serv_original,
                                         HEADER_SERVICE_EXP: tee_config.serv_experimental,
-                                        HEADER_MAX_DELTA_SEC: str(tee_config.max_delta)})
+                                        HEADER_MAX_DELTA_SEC: str(tee_config.max_delta if tee_config.max_delta else 0)})
             self.fore_url = "{}://{}:{}/".format(protocol, tee_config.fore_service.host, tee_config.fore_service.port)
 
     def _path(self, path):
@@ -74,7 +74,6 @@ class Service(object):
         """
         Return a service interface for the requested service.
         """
-
         service_experimental = kwargs.pop('service_experimental', None)
         max_delta = kwargs.pop('max_delta', None)
         env = kwargs.pop('env', None)
