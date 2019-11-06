@@ -7,6 +7,8 @@ from . import query
 __all__ = ["service", "register", "mock", "AGENT_URI"]
 
 AGENT_URI = "127.0.0.1"
+AGENT_PORT = 8600
+AGENT_DC = "service.consul"
 
 TeeConfig = namedtuple('TeeConfig', 'serv_original serv_experimental max_delta fore_service')
 DEFAULT_TEE_SERVICE = 'fore'
@@ -24,7 +26,7 @@ class ConsulClient(object):
         self.base_url = "{}://{}:{}/".format(protocol, host, port)
         self.session = requests.Session()
         self.fore_url = None
-        
+
         tee_config = kwargs.pop('tee_config', None)
         if tee_config:
             self.session.headers.update({HEADER_SERVICE: tee_config.serv_original,
@@ -50,7 +52,7 @@ class ConsulClient(object):
 
     def delete(self, path, *args, **kwargs):
         return self.session.delete(self._path(path), *args, **kwargs)
-    
+
     def run(self, request_method, path, **kwargs):
         request = requests.Request(request_method, self._path(path), **kwargs)
         prepped = self.session.prepare_request(request)
@@ -61,13 +63,12 @@ class Service(object):
     Provides service discovery via Consul, returning some kind of session
     handler for the service.
     """
-
     MOCK_SERVICES = {"__all__": False}
     SERVICE_MAP = {"default": ConsulClient}
     MOCKED_SERVICE_MAP = {}
 
     def resolve(self, service_name):
-        resolver = query.Resolver(AGENT_URI)
+        resolver = query.Resolver(AGENT_URI, AGENT_PORT, AGENT_DC)
         return resolver.srv(service_name)
 
     def __call__(self, service_name, *args, **kwargs):
@@ -100,7 +101,7 @@ class Service(object):
                                         serv_experimental=service_experimental,
                                         max_delta=max_delta,
                                         fore_service=self.resolve(fore_service))
-                
+
             host_port = self.resolve(service_name)
             server = host_port.host
             port = host_port.port
