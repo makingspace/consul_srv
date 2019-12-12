@@ -24,3 +24,11 @@ consul_srv.mock("euclid")
 ```
 
 This will set `consul_srv` to serve a mocked service handler when `service("euclid")` is called, bypassing any calls to a consul agent.
+
+
+By default `consul_srv` looks at the `service.consul` "TLD" for service discovery/resolution.  You can modify this, for example for cross Datacenter Resolution with:
+
+```
+import consul_srv
+consul_srv.AGENT_DC = 'service.remotedatacenter.consul'
+```

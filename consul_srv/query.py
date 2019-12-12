@@ -16,10 +16,11 @@ class Resolver(Resolver):
     method. Takes the address and optional port of a DNS server.
     """
 
-    def __init__(self, server_address, port=8600):
+    def __init__(self, server_address, port=8600, consul_domain='service.consul'):
         super(Resolver, self).__init__()
         self.nameservers = [server_address]
         self.nameserver_ports = {server_address: port}
+        self.consul_domain = consul_domain
 
     def _get_host(self, answer):
         for resource in answer.response.additional:
@@ -41,7 +42,7 @@ class Resolver(Resolver):
         Query this resolver's nameserver for the name consul service. Returns a
         named host/port tuple from the first element of the response.
         """
-        domain_name = "{}.service.consul".format(resource)
+        domain_name = "{}.{}".format(resource, self.consul_domain)
         # Get the host from the ADDITIONAL section
         answer = self.query(domain_name, "SRV", tcp=True)
 
