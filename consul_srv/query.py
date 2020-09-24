@@ -3,12 +3,10 @@ Simple wrapper around dnspython to query a Consul agent over its DNS port and
 extract ip address/port information.
 """
 from collections import namedtuple
-
 from dns import rdatatype
 from dns.resolver import Resolver
 
 SRV = namedtuple("SRV", ["host", "port"])
-
 
 class Resolver(Resolver):
     """
@@ -21,6 +19,12 @@ class Resolver(Resolver):
         self.nameservers = [server_address]
         self.nameserver_ports = {server_address: port}
         self.consul_domain = consul_domain
+        # timeout = The number of seconds to wait for a response from a server, before timing out.
+        # lifetime = The total number of seconds to spend trying to get an answer to the question.
+        # max_lookup = [ours] Total number of looping loopups to do
+        self.timeout = 1
+        self.lifetime = 2
+        self.max_lookup = 5
 
     def _get_host(self, answer):
         for resource in answer.response.additional:
@@ -37,16 +41,26 @@ class Resolver(Resolver):
 
         raise ValueError("No port information.")
 
+    def get_service(self, resource, count=0):
+        domain_name = "{}.{}".format(resource, self.consul_domain)
+        try:
+            answer = self.query(domain_name, "SRV", tcp=True)
+        except self.Timeout:
+            if(count<self.max_lookup):
+                count = count + 1
+                answer = self.get_service(resource, count)
+            else:
+                raise self.Timeout
+
+        return answer
+
     def srv(self, resource):
         """
         Query this resolver's nameserver for the name consul service. Returns a
         named host/port tuple from the first element of the response.
         """
-        domain_name = "{}.{}".format(resource, self.consul_domain)
         # Get the host from the ADDITIONAL section
-        answer = self.query(domain_name, "SRV", tcp=True)
-
+        answer = self.get_service(resource)
         host = self._get_host(answer)
         port = self._get_port(answer)
-
         return SRV(host, port)

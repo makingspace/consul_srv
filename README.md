@@ -32,3 +32,20 @@ By default `consul_srv` looks at the `service.consul` "TLD" for service discover
 import consul_srv
 consul_srv.AGENT_DC = 'service.remotedatacenter.consul'
 ```
+
+
+## Build and deploy
+
+I've created a helper directory called build.  This assumes you can SSH to baikonur because it populates `PIPY_URL` from there.
+
+ - upate the `setup.py` for version number
+
+ - `./build_helper/image_build.sh` quickly builds a python 2.7 container with current source
+
+ - `./build_helper/image_run.sh` runs that container
+
+now we're in a python 2.7 shell we can build the package with
+
+ - `python setup.py bdist_wheel --universal`
+
+ - `curl -F package=@dist/consul_srv-*{version}*-py2.py3-none-any.whl $PYPI_URL`
