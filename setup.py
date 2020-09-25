@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name='consul_srv',
-    version='0.5.3',
+    version='0.5.4',
     description='Consul SRV convenience module',
     author='Zach Smith',
     author_email='zach.smith@makespace.com',

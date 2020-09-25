@@ -22,8 +22,8 @@ class Resolver(Resolver):
         # timeout = The number of seconds to wait for a response from a server, before timing out.
         # lifetime = The total number of seconds to spend trying to get an answer to the question.
         # max_lookup = [ours] Total number of looping loopups to do
-        self.timeout = 1
-        self.lifetime = 2
+        self.timeout = 2
+        self.lifetime = 4
         self.max_lookup = 5
 
     def _get_host(self, answer):
