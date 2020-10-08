@@ -45,12 +45,12 @@ class Resolver(Resolver):
         domain_name = "{}.{}".format(resource, self.consul_domain)
         try:
             answer = self.query(domain_name, "SRV", tcp=True)
-        except self.exception.Timeout:
+        except Resolver.Timeout:
             if(count<self.max_lookup):
                 count = count + 1
                 answer = self.get_service(resource, count)
             else:
-                raise self.exception.Timeout
+                raise Resolver.Timeout
 
         return answer
 
