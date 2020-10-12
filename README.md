@@ -36,7 +36,7 @@ consul_srv.AGENT_DC = 'service.remotedatacenter.consul'
 
 ## Build and deploy
 
-I've created a helper directory called build.  This assumes you can SSH to baikonur because it populates `PIPY_URL` from there.
+I've created a helper directory called build. You will need to populate `PIPY_URL` before you run the image build.
 
  - upate the `setup.py` for version number
 
