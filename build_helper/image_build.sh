@@ -1,7 +1,5 @@
 #!/bin/bash
 
-PYPI_URL=`ssh ubuntu@baikonur.mksp.co consul kv get pypi/index_url`
-
 if [[ "$OSTYPE" == "darwin"* ]]; then
     # Mac OSX
     export DOCKER_BUILDKIT=1
