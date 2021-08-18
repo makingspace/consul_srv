@@ -61,10 +61,6 @@ class Resolver(Resolver):
     def _get_host(self, answer):
         # changing this functionality from the non-compliant get info from the additional
         # section, to the more compliant do a lookup from host provided by SRV record
-        #for resource in answer.response.additional:
-        #    for record in resource.items:
-        #        if record.rdtype == rdatatype.A:
-        #            return record.address
         for resource in answer:
             if resource.rdtype == rdatatype.SRV:
                 hostip = self._lookup_host(resource.target)
