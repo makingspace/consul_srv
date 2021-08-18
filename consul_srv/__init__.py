@@ -68,7 +68,7 @@ class Service(object):
     MOCK_SERVICES = {"__all__": False}
     SERVICE_MAP = {"default": ConsulClient}
     MOCKED_SERVICE_MAP = {}
-    
+
     def resolve(self, service_name):
         server_address = AGENT_URI
         # because of the special case involved with passing host.docker.internal to AGENT_URI
