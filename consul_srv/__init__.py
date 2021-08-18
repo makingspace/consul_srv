@@ -71,6 +71,9 @@ class Service(object):
     
     def resolve(self, service_name):
         server_address = AGENT_URI
+        # because of the special case involved with passing host.docker.internal to AGENT_URI
+        # we have to resolve this to the ip address as this can/will be different for each docker
+        # environment.
         if(server_address=='host.docker.internal'):
             logging.debug('consul_srv: SPECIAL CASE FOR AGENT_URI = {}'.format(server_address))
             theresolver = dns.resolver.Resolver()
