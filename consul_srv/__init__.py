@@ -1,4 +1,6 @@
 import requests
+import dns
+import logging
 
 from collections import namedtuple
 
@@ -66,9 +68,17 @@ class Service(object):
     MOCK_SERVICES = {"__all__": False}
     SERVICE_MAP = {"default": ConsulClient}
     MOCKED_SERVICE_MAP = {}
-
+    
     def resolve(self, service_name):
-        resolver = query.Resolver(AGENT_URI, AGENT_PORT, AGENT_DC)
+        server_address = AGENT_URI
+        if(server_address=='host.docker.internal'):
+            logging.debug('consul_srv: SPECIAL CASE FOR AGENT_URI = {}'.format(server_address))
+            theresolver = dns.resolver.Resolver()
+            answer = theresolver.query('{}'.format(server_address))
+            for ipval in answer:
+                server_address=ipval.to_text()
+            logging.debug('consul_srv: RESOLVED AGENT_URI = "{}"'.format(server_address))
+        resolver = query.Resolver(server_address, AGENT_PORT, AGENT_DC)
         return resolver.srv(service_name)
 
     def __call__(self, service_name, *args, **kwargs):
