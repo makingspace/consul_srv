@@ -2,8 +2,10 @@
 Simple wrapper around dnspython to query a Consul agent over its DNS port and
 extract ip address/port information.
 """
+import asyncio
+from async_dns.core import types, Address
+from async_dns.resolver import DNSClient
 from collections import namedtuple
-from dns import rdatatype
 from dns.resolver import Resolver
 import time
 import random
@@ -21,6 +23,7 @@ class Resolver(Resolver):
         super(Resolver, self).__init__()
         self.consul_server = server_address
         self.consul_port = port
+        self.consul_address = '{}:{}'.format(server_address, port)
         self.nameservers = [server_address]
         self.nameserver_ports = {server_address: port}
         self.consul_domain = consul_domain
@@ -32,24 +35,31 @@ class Resolver(Resolver):
         self.max_lookup = 6
 
     def _get_host(self, answer):
-        for resource in answer.response.additional:
-            for record in resource.items:
-                if record.rdtype == rdatatype.A:
-                    return record.address
+        for record in answer.ar:
+            if record.qtype == types.A:
+                return record.data.data
 
         raise ValueError("No host information.")
 
     def _get_port(self, answer):
-        for resource in answer:
-            if resource.rdtype == rdatatype.SRV:
-                return resource.port
+        for record in answer.an:
+            if record.qtype == types.SRV:
+                return record.data.port
 
         raise ValueError("No port information.")
+
+    async def query(self, domain, rtype):
+        logging.debug('Trying to get IP for {} from {}'.format(domain, self.consul_address))
+        client = DNSClient()
+        res = await client.query(domain, rtype, Address.parse(self.consul_address))
+        from async_dns.request import clean
+        clean() # Need to clean up before running the next query
+        return res
 
     def get_service(self, resource, count=0):
         domain_name = "{}.{}".format(resource, self.consul_domain)
         try:
-            answer = self.query(domain_name, "SRV", tcp=True)
+            answer = asyncio.run(self.query(domain_name, types.SRV))
         except:
             if(count<self.max_lookup):
                 count = count + 1
