@@ -4,6 +4,7 @@ import logging
 
 from collections import namedtuple
 
+from dns.resolver import Resolver
 from . import query
 
 __all__ = ["service", "register", "mock", "AGENT_URI"]
@@ -68,6 +69,7 @@ class Service(object):
     MOCK_SERVICES = {"__all__": False}
     SERVICE_MAP = {"default": ConsulClient}
     MOCKED_SERVICE_MAP = {}
+    DOCKER_HOST = None
 
     def resolve(self, service_name):
         server_address = AGENT_URI
@@ -75,16 +77,20 @@ class Service(object):
         # we have to resolve this to the ip address as this can/will be different for each docker
         # environment.
         if(server_address=='host.docker.internal'):
-            logging.debug('consul_srv: SPECIAL CASE FOR AGENT_URI = {}'.format(server_address))
-            theresolver = dns.resolver.Resolver()
-            try:
-                answer = theresolver.query('{}'.format(server_address))
-            except DNSException as e:
-                logging.exception('An exception occurred while trying to find "host.docker.internal" IP.')
-                logging.exception('Exception details: {}'.format(e))
-            for ipval in answer:
-                server_address=ipval.to_text()
-            logging.debug('consul_srv: RESOLVED AGENT_URI = "{}"'.format(server_address))
+            if self.DOCKER_HOST == None:
+                logging.debug('consul_srv: SPECIAL CASE FOR AGENT_URI = {}'.format(server_address))
+                theresolver = dns.resolver.Resolver()
+                try:
+                    answer = theresolver.query('{}'.format(server_address))
+                except DNSException as e:
+                    logging.exception('An exception occurred while trying to find "host.docker.internal" IP.')
+                    logging.exception('Exception details: {}'.format(e))
+                for ipval in answer:
+                    server_address=ipval.to_text()
+                logging.debug('consul_srv: RESOLVED AGENT_URI = "{}"'.format(server_address))
+                self.DOCKER_HOST = server_address
+            else:
+                server_address = self.DOCKER_HOST
         resolver = query.Resolver(server_address, AGENT_PORT, AGENT_DC)
         return resolver.srv(service_name)
 
