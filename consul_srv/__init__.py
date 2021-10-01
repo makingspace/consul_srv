@@ -1,7 +1,11 @@
 import requests
-import dns
+import asyncio
 import logging
 
+from async_dns import get_nameservers
+from async_dns.core import types
+from async_dns.resolver import ProxyResolver,RecursiveResolver
+from dns.exception import DNSException
 from collections import namedtuple
 
 from . import query
@@ -68,6 +72,7 @@ class Service(object):
     MOCK_SERVICES = {"__all__": False}
     SERVICE_MAP = {"default": ConsulClient}
     MOCKED_SERVICE_MAP = {}
+    hostDocker = None
 
     def resolve(self, service_name):
         server_address = AGENT_URI
@@ -75,16 +80,24 @@ class Service(object):
         # we have to resolve this to the ip address as this can/will be different for each docker
         # environment.
         if(server_address=='host.docker.internal'):
-            logging.debug('consul_srv: SPECIAL CASE FOR AGENT_URI = {}'.format(server_address))
-            theresolver = dns.resolver.Resolver()
-            try:
-                answer = theresolver.query('{}'.format(server_address))
-            except DNSException as e:
-                logging.exception('An exception occurred while trying to find "host.docker.internal" IP.')
-                logging.exception('Exception details: {}'.format(e))
-            for ipval in answer:
-                server_address=ipval.to_text()
-            logging.debug('consul_srv: RESOLVED AGENT_URI = "{}"'.format(server_address))
+            if self.hostDocker == None:
+                logging.debug('consul_srv: SPECIAL CASE FOR AGENT_URI = {}'.format(server_address))
+                theresolver = ProxyResolver(proxies=get_nameservers())
+                try:
+                    answer, cache = asyncio.run(theresolver.query('{}'.format(server_address), types.A))
+                    logging.debug('Got cache? {}'.format(cache))
+                except:
+                    logging.exception('An exception occurred while trying to find "host.docker.internal" IP.')
+                    raise
+
+                logging.debug('AGENT_URI answer = {}'.format(answer))
+                for record in answer.an:
+                    if record.qtype == types.A:
+                        server_address=record.data.data
+                logging.debug('consul_srv: RESOLVED AGENT_URI = "{}"'.format(server_address))
+                self.hostDocker = server_address
+            else:
+                server_address = self.hostDocker
         resolver = query.Resolver(server_address, AGENT_PORT, AGENT_DC)
         return resolver.srv(service_name)
 
