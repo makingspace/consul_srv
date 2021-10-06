@@ -3,10 +3,10 @@ from setuptools import setup
 
 setup(
     name='consul_srv',
-    version='0.5.5',
+    version='0.6.0',
     description='Consul SRV convenience module',
     author='Zach Smith',
     author_email='zach.smith@makespace.com',
     license='BSD3',
     packages=['consul_srv'],
-    install_requires=["dnspython", "requests"])
+    install_requires=["dnspython", "requests", "asyncio", "aiodns"])
