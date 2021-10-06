@@ -2,9 +2,9 @@ import requests
 import dns
 import logging
 
+from dns.resolver import Resolver
 from collections import namedtuple
 
-from dns.resolver import Resolver
 from . import query
 
 __all__ = ["service", "register", "mock", "AGENT_URI"]
@@ -79,7 +79,7 @@ class Service(object):
         if(server_address=='host.docker.internal'):
             if self.DOCKER_HOST == None:
                 logging.debug('consul_srv: SPECIAL CASE FOR AGENT_URI = {}'.format(server_address))
-                theresolver = dns.resolver.Resolver()
+                theresolver = Resolver() # dns.resolver.Resolver
                 try:
                     answer = theresolver.query('{}'.format(server_address))
                 except DNSException as e:
@@ -146,9 +146,7 @@ class Service(object):
 
         return service
 
-
 service = Service()
-
 
 def register(service_name, handler, mock_handler=None):
     """
@@ -157,7 +155,6 @@ def register(service_name, handler, mock_handler=None):
     service.SERVICE_MAP[service_name] = handler
     if mock_handler is not None:
         service.MOCKED_SERVICE_MAP[service_name] = mock_handler
-
 
 def mock(service_name, should_mock=True, mock_handler=None):
     """

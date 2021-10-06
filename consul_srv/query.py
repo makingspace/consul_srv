@@ -3,10 +3,8 @@ Simple wrapper around dnspython to query a Consul agent over its DNS port and
 extract ip address/port information.
 """
 from collections import namedtuple
-from dns import rdatatype
 from typing import (
     Any,
-    List,
     Optional,
     Set
 )
@@ -49,29 +47,26 @@ class Resolver(aiodns.DNSResolver):
     async def runQuery(self, name, query_type):
         return await self.query(name, query_type)
 
-
     def _get_host(self, answer):
-        for resources in answer:
-            for record in resources: 
-                logging.debug('Looking for host at {}'.format(record))
-                if type(record) == pycares.ares_query_a_result:
-                    return record.host
+        logging.debug('Got these: {}'.format(answer))
+        for record in answer[1]: 
+            logging.debug('Looking for host at {}'.format(record))
+            if type(record) == pycares.ares_query_a_result:
+                return record.host
 
         raise ValueError("No host information.")
 
     def _get_port(self, answer):
-        for resources in answer:
-            for record in resources: 
-                logging.debug('Looking for port at {}'.format(record))
-                if type(record) == pycares.ares_query_srv_result:
-                    return record.port
+        for record in answer[0]: 
+            logging.debug('Looking for port at {}'.format(record))
+            if type(record) == pycares.ares_query_srv_result:
+                return record.port
 
         raise ValueError("No port information.")
 
     def get_service(self, resource, count=0):
         domain_name = "{}.{}".format(resource, self.consul_domain)
         try:
-            #answer = self.runQuery(domain_name, "SRV")
             coroSRV = self.runQuery(domain_name, 'SRV')
             coroA = self.runQuery(domain_name, 'A')
             answer = self.loop.run_until_complete(asyncio.gather(
