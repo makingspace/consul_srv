@@ -1,8 +1,8 @@
 import requests
-import dns
 import logging
 
 from dns.resolver import Resolver
+from dns.exception import DNSException
 from collections import namedtuple
 
 from . import query

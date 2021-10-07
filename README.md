@@ -44,7 +44,7 @@ I've created a helper directory called build. You will need to populate `PIPY_UR
 
  - `./build_helper/image_run.sh` runs that container
 
-now we're in a python 2.7 shell we can build the package with
+now we're in a python 3.7 shell we can build the package with
 
  - `python setup.py bdist_wheel --universal`
 

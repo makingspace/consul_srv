@@ -48,9 +48,8 @@ class Resolver(aiodns.DNSResolver):
         return await self.query(name, query_type)
 
     def _get_host(self, answer):
-        logging.debug('Got these: {}'.format(answer))
         for record in answer[1]: 
-            logging.debug('Looking for host at {}'.format(record))
+            logging.debug('consul_srv: looking for host at {}'.format(record))
             if type(record) == pycares.ares_query_a_result:
                 return record.host
 
@@ -58,7 +57,7 @@ class Resolver(aiodns.DNSResolver):
 
     def _get_port(self, answer):
         for record in answer[0]: 
-            logging.debug('Looking for port at {}'.format(record))
+            logging.debug('consul_srv: looking for port at {}'.format(record))
             if type(record) == pycares.ares_query_srv_result:
                 return record.port
 
@@ -67,6 +66,7 @@ class Resolver(aiodns.DNSResolver):
     def get_service(self, resource, count=0):
         domain_name = "{}.{}".format(resource, self.consul_domain)
         try:
+            logging.debug('consul_srv: requesting entries for {}'.format(domain_name))
             coroSRV = self.runQuery(domain_name, 'SRV')
             coroA = self.runQuery(domain_name, 'A')
             answer = self.loop.run_until_complete(asyncio.gather(
@@ -94,5 +94,5 @@ class Resolver(aiodns.DNSResolver):
         answer = self.get_service(resource)
         host = self._get_host(answer)
         port = self._get_port(answer)
-        logging.debug('consul_srv: recieved answer for {} as {}:{}\n'.format( resource, host, port ))
+        logging.info('consul_srv: recieved answer for {} as {}:{}\n'.format( resource, host, port ))
         return SRV(host, port)
