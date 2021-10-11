@@ -67,12 +67,43 @@ class Resolver(aiodns.DNSResolver):
         raise ValueError("No port information.")
 
     def get_service_from_consul(self, resource):
+        """
+        By connecting to consul using it's client on port 8500,
+            gets a healthy instance for a given service, or it 
+            rises an exception if none of the instances are OK.
+        """
         logging.debug('consul_srv: running Consul Client query')
+        client = consul.Consul(host=self.nameservers[0], port=self.client_port) # Getting a connection with consul
+        service_instances = client.health.service(resource)[1] # Getting the services instances health checks
+        service_range = list(range(len(service_instances))) # Generating a random sorted list to interate the checks list
+        random.shuffle(service_range)
+        for instance in service_range:
+            service_instance = service_instances[instance] # Getting a random service instance
+            logging.debug('consul_srv: checking consul service instance "{}"'.format(service_instance['Service']['ID']))
+            self.checks_passed = True
+            for check in service_instance['Checks']: # Checking the instances checks status
+                if check['Status'] != 'passing': # If any of the checks fails, it assumes the instances is unavailable
+                    self.checks_passed = False
+                    break
+            if self.checks_passed: # If all checks pass, this instances is healthy
+                logging.debug('consul_srv: there is at least one instance healthy.')
+                return SRV(service_instance['Service']['Address'], service_instance['Service']['Port'])
+        raise Exception("No healthy instaces found for service '{}'.".format(resource))
+    
+    def check_service_from_consul(self, resource):
+        """
+        By connecting to consul using it's client on port 8500,
+            it verifies if a service is healthy
+        """
+        logging.debug('consul_srv: checking service {} health on consul'.format(resource))
         client = consul.Consul(host=self.nameservers[0], port=self.client_port)
-        service_instances = client.catalog.service(resource)[1]
-        rand_instance = random.randint(0, len(service_instances)-1)
-        service_instance = service_instances[rand_instance]
-        return SRV(service_instance['ServiceAddress'], service_instance['ServicePort'])
+        service_checks = client.health.checks(resource)[1]
+
+        for check in service_checks:
+            if check['Status'] == 'passing':
+                return True
+        logging.debug('consul_srv: No healthy instaces for service {} found'.format(resource))
+        return False
 
     def get_service_from_dns(self, resource):
         logging.debug('consul_srv: running DNS query')
@@ -86,13 +117,16 @@ class Resolver(aiodns.DNSResolver):
         return SRV(self._get_host(answer), self._get_port(answer))
 
     def get_service(self, resource, count=0):
-        
         try:
             logging.debug('consul_srv: requesting entries for {}'.format(resource))
             answer = self.get_service_from_dns(resource)
-        except:
+        except Exception as dnserr:
+            logging.debug('consul_srv: something odd happen while running DNS query')
+            if pycares.errno.errorcode[dnserr.args[0]] == 'ARES_ENOTFOUND':
+                if not self.check_service_from_consul(resource):
+                    raise # 
             try:
-                logging.debug('consul_srv: something odd happen while running DNS query, falling back to consul client')
+                logging.debug('consul_srv: falling back to consul client')
                 answer = self.get_service_from_consul(resource)
             except:
                 if(count<self.max_lookup):
