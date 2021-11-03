@@ -12,6 +12,7 @@ __all__ = ["service", "register", "mock", "AGENT_URI"]
 AGENT_URI = "127.0.0.1"
 AGENT_PORT = 8600
 AGENT_DC = "service.consul"
+AGENT_CLIENT_PORT = 8500
 
 TeeConfig = namedtuple('TeeConfig', 'serv_original serv_experimental max_delta fore_service')
 DEFAULT_TEE_SERVICE = 'fore'
@@ -91,7 +92,7 @@ class Service(object):
                 self.DOCKER_HOST = server_address
             else:
                 server_address = self.DOCKER_HOST
-        resolver = query.Resolver(server_address = server_address, port=AGENT_PORT, consul_domain=AGENT_DC)
+        resolver = query.Resolver(server_address = server_address, port=AGENT_PORT, consul_domain=AGENT_DC, client_port=AGENT_CLIENT_PORT)
         return resolver.srv(service_name)
 
     def __call__(self, service_name, *args, **kwargs):
