@@ -1,5 +1,8 @@
 import requests
+import logging
 
+from dns.resolver import Resolver
+from dns.exception import DNSException
 from collections import namedtuple
 
 from . import query
@@ -9,6 +12,7 @@ __all__ = ["service", "register", "mock", "AGENT_URI"]
 AGENT_URI = "127.0.0.1"
 AGENT_PORT = 8600
 AGENT_DC = "service.consul"
+AGENT_CLIENT_PORT = 8500
 
 TeeConfig = namedtuple('TeeConfig', 'serv_original serv_experimental max_delta fore_service')
 DEFAULT_TEE_SERVICE = 'fore'
@@ -66,9 +70,29 @@ class Service(object):
     MOCK_SERVICES = {"__all__": False}
     SERVICE_MAP = {"default": ConsulClient}
     MOCKED_SERVICE_MAP = {}
+    DOCKER_HOST = None
 
     def resolve(self, service_name):
-        resolver = query.Resolver(AGENT_URI, AGENT_PORT, AGENT_DC)
+        server_address = AGENT_URI
+        # because of the special case involved with passing host.docker.internal to AGENT_URI
+        # we have to resolve this to the ip address as this can/will be different for each docker
+        # environment.
+        if(server_address=='host.docker.internal'):
+            if self.DOCKER_HOST == None:
+                logging.debug('consul_srv: SPECIAL CASE FOR AGENT_URI = {}'.format(server_address))
+                theresolver = Resolver() # dns.resolver.Resolver
+                try:
+                    answer = theresolver.query('{}'.format(server_address))
+                except DNSException as e:
+                    logging.exception('An exception occurred while trying to find "host.docker.internal" IP.')
+                    logging.exception('Exception details: {}'.format(e))
+                for ipval in answer:
+                    server_address=ipval.to_text()
+                logging.debug('consul_srv: RESOLVED AGENT_URI = "{}"'.format(server_address))
+                self.DOCKER_HOST = server_address
+            else:
+                server_address = self.DOCKER_HOST
+        resolver = query.Resolver(server_address = server_address, port=AGENT_PORT, consul_domain=AGENT_DC, client_port=AGENT_CLIENT_PORT)
         return resolver.srv(service_name)
 
     def __call__(self, service_name, *args, **kwargs):
@@ -123,9 +147,7 @@ class Service(object):
 
         return service
 
-
 service = Service()
-
 
 def register(service_name, handler, mock_handler=None):
     """
@@ -134,7 +156,6 @@ def register(service_name, handler, mock_handler=None):
     service.SERVICE_MAP[service_name] = handler
     if mock_handler is not None:
         service.MOCKED_SERVICE_MAP[service_name] = mock_handler
-
 
 def mock(service_name, should_mock=True, mock_handler=None):
     """
